@@ -38,36 +38,38 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
+    if (!videoRefs.current || videoRefs.current.length === 0) return;
+  
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          const idx = videoRefs.current.indexOf(entry.target);
+          const video = entry.target;
+          const idx = videoRefs.current.indexOf(video);
+  
           if (entry.isIntersecting) {
             setCurrentVideoIndex(idx);
-            entry.target
-              .play()
-              .catch((err) => console.error("Play error:", err));
             setIsPlaying(true);
             setHasVoted(false);
+  
+            video.play().catch((err) => console.error("Play error:", err));
           } else {
-            entry.target.pause();
-            setHasVoted(false);
+            video.pause();
           }
         });
       },
       { threshold: 0.7 }
     );
-
+  
     videoRefs.current.forEach((video) => {
       if (video) {
         observer.observe(video);
         video.onended = () => {
           video.currentTime = 0;
-          video.play();
+          video.play().catch((err) => console.error("Replay error:", err));
         };
       }
     });
-
+  
     return () => {
       videoRefs.current.forEach((video) => {
         if (video) {
@@ -75,8 +77,10 @@ const Dashboard = () => {
           video.onended = null;
         }
       });
+      observer.disconnect();
     };
-  }, []);
+  }, [videoRefs]);
+  
 
   const togglePlayPause = useCallback(() => {
     if (currentVideoIndex === null) return;
@@ -141,12 +145,11 @@ const Dashboard = () => {
     });
   };
 
-
   const handleLike = (index) => {
     const targetIndex = isMdUp ? currentIndex : index;
     setLikes((prevLikes) => {
       const updatedLikes = [...prevLikes];
-      updatedLikes[targetIndex] = !updatedLikes[targetIndex]; 
+      updatedLikes[targetIndex] = !updatedLikes[targetIndex];
       return updatedLikes;
     });
   };
@@ -198,7 +201,7 @@ const Dashboard = () => {
           >
             {/* SocialAction */}
             <SocialAction
-              isLike={likes[currentIndex]} 
+              isLike={likes[currentIndex]}
               hasVoted={hasVoted}
               handleLike={handleLike}
               handleVote={handleVote}
